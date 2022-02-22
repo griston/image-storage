@@ -11,6 +11,7 @@ use Nette\SmartObject;
 use Nette\Utils\Image as NetteImage;
 use Nette\Utils\Strings;
 use Nette\Utils\UnknownImageFileException;
+use Tracy\Debugger;
 
 class ImageStorage
 {
@@ -182,16 +183,16 @@ class ImageStorage
 			$args = [$args];
 		}
 
-		$identifier = $args[0];
+		$identifierOrig = $args[0];
 
 		$isNoImage = false;
 
 		if (count($args) === 1) {
-			if (!file_exists(implode('/', [$this->data_path, $identifier])) || !$identifier) {
+			if (!file_exists(implode('/', [$this->data_path, $identifierOrig])) || !$identifierOrig) {
 				return $this->getNoImage(true);
 			}
 
-			return new Image($this->friendly_url, $this->data_dir, $this->data_path, $identifier);
+			return new Image($this->friendly_url, $this->data_dir, $this->data_path, $identifierOrig);
 		}
 
 		preg_match('/(\d+)?x(\d+)?(crop(\d+)x(\d+)x(\d+)x(\d+))?/', $args[1], $matches);
@@ -209,11 +210,11 @@ class ImageStorage
 		$flag = $args[2] ?? $this->default_transform;
 		$quality = $args[3] ?? $this->quality;
 
-		if (!$identifier) {
+		if (!$identifierOrig) {
 			$isNoImage = false;
 			[$script, $file] = $this->getNoImage(false);
 		} else {
-			$script = ImageNameScript::fromIdentifier($identifier);
+			$script = ImageNameScript::fromIdentifier($identifierOrig);
 
 			$file = implode('/', [$this->data_path, $script->original]);
 
@@ -230,7 +231,9 @@ class ImageStorage
 
 		$identifier = $script->getIdentifier();
 
-		if (!file_exists(implode('/', [$this->data_path, $identifier]))) {
+		$newPathCacheBase = implode('/', [$this->data_path_cache, $identifier]);
+		$newPathCache = sprintf('%s.webp', $newPathCacheBase);
+		if (!file_exists($newPathCacheBase) && !file_exists($newPathCache)) {
 			if (!file_exists($file)) {
 				return new Image(false, '#', '#', 'Can not find image');
 			}
@@ -259,9 +262,6 @@ class ImageStorage
 
 			$_image->resize($size[0], $size[1], $flag);
 
-
-			$newPathCache = implode('/', [$this->data_path_cache, $identifier]);
-
 			if (!file_exists($newPathCache)) {
 				$dirNameCache = dirname($newPathCache);
 
@@ -270,10 +270,20 @@ class ImageStorage
 				}
 			}
 
-			$_image->sharpen()->save(
-				$newPathCache,
-				$quality
-			);
+			try {
+				$_image->sharpen()->save($newPathCacheBase, $quality);
+				imagewebp($_image->getImageResource(), $newPathCache, $quality);
+				unlink($newPathCacheBase);
+			} catch (\Error $e) {
+				// notsupport webp
+			} catch (\Exception $e) {
+				return new Image($this->friendly_url, $this->data_dir, $this->data_path, $identifierOrig);
+			}
+
+		}
+
+		if (file_exists($newPathCache)) {
+			return new Image($this->friendly_url, $this->data_dir_cache, $this->data_path_cache, sprintf('%s.webp', $identifier), ['script' => $script]);
 		}
 
 		return new Image($this->friendly_url, $this->data_dir_cache, $this->data_path_cache, $identifier, ['script' => $script]);
