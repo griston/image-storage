@@ -1,5 +1,5 @@
 {
-	"name": "griston/image-storage",
+	"name": "skadmin/image-storage",
 	"type": "library",
 	"description": "Image storage for Nette framework",
 	"keywords": [
@@ -14,7 +14,7 @@
 		"MIT"
 	],
 	"support": {
-		"issues": "https://github.com/contributte/image-storage/issues"
+		"issues": "https://github.com/griston/image-storage/issues"
 	},
 	"authors": [
 		{
