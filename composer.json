@@ -1,5 +1,5 @@
 {
-	"name": "skadmin/image-storage",
+	"name": "skadmin-utils/image-storage",
 	"type": "library",
 	"description": "Image storage for Nette framework",
 	"keywords": [
