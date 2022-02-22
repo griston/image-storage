@@ -19,11 +19,11 @@ parameters:
 			path: '*/src/ImageStorage.php'
 			count: 1
 		-
-			message: '~^Method Contributte\\ImageStorage\\ImageStorage::fromIdentifier\(\) should return Contributte\\ImageStorage\\Image but returns array<int, Contributte\\ImageStorage\\ImageNameScript\|string>\|Contributte\\ImageStorage\\Image\.$~'
+			message: '~^Method SkadminUtils\\ImageStorage\\ImageStorage::fromIdentifier\(\) should return SkadminUtils\\ImageStorage\\Image but returns array<int, SkadminUtils\\ImageStorage\\ImageNameScript\|string>\|SkadminUtils\\ImageStorage\\Image\.$~'
 			path: '*/src/ImageStorage.php'
 			count: 1
 
 		-
-			message: '#Cannot use array destructuring on array<int, Contributte\\ImageStorage\\ImageNameScript|string>|Contributte\\ImageStorage\\Image.#'
+			message: '#Cannot use array destructuring on array<int, SkadminUtils\\ImageStorage\\ImageNameScript|string>|SkadminUtils\\ImageStorage\\Image.#'
 			path: '*/src/ImageStorage.php'
 			count: 2

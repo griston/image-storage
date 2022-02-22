@@ -20,11 +20,14 @@
 		{
 			"name": "Pavel Janda",
 			"homepage": "https://paveljanda.com"
+		},
+		{
+			"name": "David Skála"
 		}
 	],
 	"autoload": {
 		"psr-4": {
-			"Contributte\\ImageStorage\\": "src/"
+			"SkadminUtils\\ImageStorage\\": "src/"
 		}
 	},
 	"autoload-dev": {

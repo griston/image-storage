@@ -1,10 +1,10 @@
 <?php declare(strict_types = 1);
 
-namespace Contributte\ImageStorage;
+namespace SkadminUtils\ImageStorage;
 
-use Contributte\ImageStorage\Exception\ImageExtensionException;
-use Contributte\ImageStorage\Exception\ImageResizeException;
-use Contributte\ImageStorage\Exception\ImageStorageException;
+use SkadminUtils\ImageStorage\Exception\ImageExtensionException;
+use SkadminUtils\ImageStorage\Exception\ImageResizeException;
+use SkadminUtils\ImageStorage\Exception\ImageStorageException;
 use DirectoryIterator;
 use Nette\Http\FileUpload;
 use Nette\SmartObject;

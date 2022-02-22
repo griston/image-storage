@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace Contributte\ImageStorage\Macros;
+namespace SkadminUtils\ImageStorage\Macros;
 
 use Latte;
 use Latte\Compiler;

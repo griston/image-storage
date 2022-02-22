@@ -2,7 +2,7 @@
 
 namespace Tests\Cases;
 
-use Contributte\ImageStorage\ImageNameScript;
+use SkadminUtils\ImageStorage\ImageNameScript;
 use Ninjify\Nunjuck\TestCase\BaseTestCase;
 use Tester\Assert;
 

@@ -18,7 +18,7 @@ Image storage for Nette framework.
 Register extension:
 ```neon
 extensions:
-	imageStorage: Contributte\ImageStorage\DI\ImageStorageExtension
+	imageStorage: SkadminUtils\ImageStorage\DI\ImageStorageExtension
 ```
 
 Configure extension:
@@ -51,7 +51,7 @@ but files will be distributed under that hash-named directories.
 
 namespace Your\App\Presenters;
 
-use Contributte\ImageStorage\ImageStoragePresenterTrait;;
+use SkadminUtils\ImageStorage\ImageStoragePresenterTrait;;
 use Nette\Application\UI\Presenter;
 
 class ImageStoragePresenter extends Presenter

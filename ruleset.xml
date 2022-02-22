@@ -7,7 +7,7 @@
     <rule ref="SlevomatCodingStandard.Files.TypeNameMatchesFileName">
         <properties>
             <property name="rootNamespaces" type="array" value="
-                src=>Contributte\ImageStorage,
+                src=>SkadminUtils\ImageStorage,
                 tests/cases=>Tests\Cases
             "/>
         </properties>

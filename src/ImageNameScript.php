@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace Contributte\ImageStorage;
+namespace SkadminUtils\ImageStorage;
 
 use Nette\SmartObject;
 

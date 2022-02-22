@@ -2,7 +2,7 @@
 
 namespace Tests\Cases;
 
-use Contributte\ImageStorage\ImageStorage;
+use SkadminUtils\ImageStorage\ImageStorage;
 use Exception;
 use Nette\Http\FileUpload;
 use Nette\Utils\Image;

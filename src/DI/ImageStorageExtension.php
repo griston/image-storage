@@ -1,8 +1,8 @@
 <?php declare(strict_types = 1);
 
-namespace Contributte\ImageStorage\DI;
+namespace SkadminUtils\ImageStorage\DI;
 
-use Contributte\ImageStorage\ImageStorage;
+use SkadminUtils\ImageStorage\ImageStorage;
 use Nette;
 use Nette\DI\CompilerExtension;
 use Nette\Schema\Expect;
@@ -44,7 +44,7 @@ class ImageStorageExtension extends CompilerExtension
 		$latteFactory = $builder->getDefinition('latte.latteFactory');
 		assert($latteFactory instanceof Nette\DI\Definitions\FactoryDefinition);
 		$latteFactory->getResultDefinition()
-			->addSetup('Contributte\ImageStorage\Macros\Macros::install(?->getCompiler())', ['@self']);
+			->addSetup('SkadminUtils\ImageStorage\Macros\Macros::install(?->getCompiler())', ['@self']);
 	}
 
 }

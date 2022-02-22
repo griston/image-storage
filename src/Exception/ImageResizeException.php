@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace Contributte\ImageStorage\Exception;
+namespace SkadminUtils\ImageStorage\Exception;
 
 use Exception;
 
