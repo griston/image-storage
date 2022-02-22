@@ -1,5 +1,5 @@
 {
-	"name": "contributte/image-storage",
+	"name": "griston/image-storage",
 	"type": "library",
 	"description": "Image storage for Nette framework",
 	"keywords": [
