@@ -1,4 +1,4 @@
-<?php declare(strict_types = 1);
+<?php declare(strict_types=1);
 
 namespace SkadminUtils\ImageStorage\DI;
 
@@ -16,6 +16,8 @@ class ImageStorageExtension extends CompilerExtension
 		return Expect::structure([
 			'data_path' => Expect::string()->required(),
 			'data_dir' => Expect::string()->required(),
+			'data_path_cache' => Expect::string(''),
+			'data_dir_cache' => Expect::string(''),
 			'algorithm_file' => Expect::string('sha1_file'),
 			'algorithm_content' => Expect::string('sha1'),
 			'quality' => Expect::int(85),
@@ -28,7 +30,7 @@ class ImageStorageExtension extends CompilerExtension
 	public function loadConfiguration(): void
 	{
 		$builder = $this->getContainerBuilder();
-		$config = (array) $this->config;
+		$config = (array)$this->config;
 		$builder->addDefinition($this->prefix('storage'))
 			->setType(ImageStorage::class)
 			->setFactory(ImageStorage::class)

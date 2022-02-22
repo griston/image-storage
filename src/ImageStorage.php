@@ -1,4 +1,4 @@
-<?php declare(strict_types = 1);
+<?php declare(strict_types=1);
 
 namespace SkadminUtils\ImageStorage;
 
@@ -22,6 +22,12 @@ class ImageStorage
 
 	/** @var string */
 	private $data_dir;
+
+	/** @var string */
+	private $data_path_cache;
+
+	/** @var string */
+	private $data_dir_cache;
 
 	/** @var callable(string): string */
 	private $algorithm_file;
@@ -58,18 +64,22 @@ class ImageStorage
 	 * @param callable(string): string $algorithm_content
 	 */
 	public function __construct(
-		string $data_path,
-		string $data_dir,
+		string   $data_path,
+		string   $data_dir,
+		string   $data_path_cache,
+		string   $data_dir_cache,
 		callable $algorithm_file,
 		callable $algorithm_content,
-		int $quality,
-		string $default_transform,
-		string $noimage_identifier,
-		bool $friendly_url
+		int      $quality,
+		string   $default_transform,
+		string   $noimage_identifier,
+		bool     $friendly_url
 	)
 	{
 		$this->data_path = $data_path;
 		$this->data_dir = $data_dir;
+		$this->data_path_cache = $data_path_cache ? $data_path_cache : sprintf('%s_cache', $data_path);
+		$this->data_dir_cache = $data_dir_cache ? $data_dir_cache : sprintf('%s_cache', $data_dir);
 		$this->algorithm_file = $algorithm_file;
 		$this->algorithm_content = $algorithm_content;
 		$this->quality = $quality;
@@ -83,29 +93,35 @@ class ImageStorage
 	 */
 	public function delete($arg, bool $onlyChangedImages = false): void
 	{
-		$script = is_object($arg) && $arg instanceof Image
-			? ImageNameScript::fromIdentifier($arg->identifier)
-			: ImageNameScript::fromName($arg);
+		$script = is_object($arg) && $arg instanceof Image ? ImageNameScript::fromIdentifier($arg->identifier) : ImageNameScript::fromName($arg);
 
-		$pattern = preg_replace('/__file__/', $script->name, ImageNameScript::PATTERN);
-		$dir = implode('/', [$this->data_path, $script->namespace, $script->prefix]);
-		$origFile = $script->name . '.' . $script->extension;
-
-		if (!file_exists($dir)) {
-			return;
-		}
-
-		foreach (new DirectoryIterator($dir) as $file_info) {
-			if (
-				!preg_match($pattern, $file_info->getFilename())
-				 || !(!$onlyChangedImages || $origFile !== $file_info->getFilename()
-				)
-			) {
-				continue;
+		$fncDelete = function (string $pattern, string $dir, string $file): void {
+			if (!file_exists($dir)) {
+				return;
 			}
 
-			unlink($file_info->getPathname());
-		}
+			foreach (new DirectoryIterator($dir) as $file_info) {
+				if (!preg_match($pattern, $file_info->getFilename()) || !(!$onlyChangedImages || $file !== $file_info->getFilename())) {
+					continue;
+				}
+
+				unlink($file_info->getPathname());
+			}
+		};
+
+		// CACHE
+		$patternCache = preg_replace('/__file__/', $script->name, ImageNameScript::PATTERN);
+		$dirCache = implode('/', [$this->data_path_cache, $script->namespace, $script->prefix]);
+		$fileCache = $script->name . '.' . $script->extension;
+
+		$fncDelete($patternCache, $dirCache, $fileCache);
+
+		// ORIG
+		$patternOrig = preg_replace('/__file__/', $script->name, ImageNameScript::PATTERN);
+		$dirOrig = implode('/', [$this->data_path, $script->namespace, $script->prefix]);
+		$fileOrig = $script->name . '.' . $script->extension;
+
+		$fncDelete($patternOrig, $dirOrig, $fileOrig);
 	}
 
 	public function saveUpload(FileUpload $upload, string $namespace, ?string $checksum = null): Image
@@ -179,7 +195,7 @@ class ImageStorage
 		}
 
 		preg_match('/(\d+)?x(\d+)?(crop(\d+)x(\d+)x(\d+)x(\d+))?/', $args[1], $matches);
-		$size = [(int) $matches[1], (int) $matches[2]];
+		$size = [(int)$matches[1], (int)$matches[2]];
 		$crop = [];
 
 		if (!$size[0] || !$size[1]) {
@@ -187,7 +203,7 @@ class ImageStorage
 		}
 
 		if (count($matches) === 8) {
-			$crop = [(int) $matches[4], (int) $matches[5], (int) $matches[6], (int) $matches[7]];
+			$crop = [(int)$matches[4], (int)$matches[5], (int)$matches[6], (int)$matches[7]];
 		}
 
 		$flag = $args[2] ?? $this->default_transform;
@@ -243,13 +259,24 @@ class ImageStorage
 
 			$_image->resize($size[0], $size[1], $flag);
 
+
+			$newPathCache = implode('/', [$this->data_path_cache, $identifier]);
+
+			if (!file_exists($newPathCache)) {
+				$dirNameCache = dirname($newPathCache);
+
+				if (!file_exists($dirNameCache)) {
+					@mkdir($dirNameCache, $this->mask, true); // Directory may exist
+				}
+			}
+
 			$_image->sharpen()->save(
-				implode('/', [$this->data_path, $identifier]),
+				$newPathCache,
 				$quality
 			);
 		}
 
-		return new Image($this->friendly_url, $this->data_dir, $this->data_path, $identifier, ['script' => $script]);
+		return new Image($this->friendly_url, $this->data_dir_cache, $this->data_path_cache, $identifier, ['script' => $script]);
 	}
 
 	/**
@@ -320,7 +347,7 @@ class ImageStorage
 		$extension = $matches[2];
 
 		while (file_exists($path = $dir . '/' . $name . $extension)) {
-			$name = (!isset($i) && ($i = 2)) ? $name . '.' . $i : substr($name, 0, -(2 + (int) floor(log($i - 1, 10)))) . '.' . $i;
+			$name = (!isset($i) && ($i = 2)) ? $name . '.' . $i : substr($name, 0, -(2 + (int)floor(log($i - 1, 10)))) . '.' . $i;
 			$i++;
 		}
 
