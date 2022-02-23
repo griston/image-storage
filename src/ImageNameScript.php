@@ -1,164 +1,144 @@
-<?php declare(strict_types = 1);
+<?php
+
+declare(strict_types=1);
 
 namespace SkadminUtils\ImageStorage;
 
 use Nette\SmartObject;
 
+use function count;
+use function implode;
+use function preg_match;
+use function preg_replace;
+use function sprintf;
+
 class ImageNameScript
 {
+    use SmartObject;
 
-	use SmartObject;
+    public const PATTERN = '/__file__(\.(\d+)x(\d+)(crop(\d+)x(\d+)x(\d+)x(\d+))?\.(\w+))?(\.q(\d+))?\.([^\.]+)$/';
 
-	public const PATTERN = '/__file__(\.(\d+)x(\d+)(crop(\d+)x(\d+)x(\d+)x(\d+))?\.(\w+))?(\.q(\d+))?\.([^\.]+)$/';
+    public string     $identifier;
+    public string     $original;
+    public string     $namespace;
+    public string     $prefix;
+    public string     $name;
+    public string     $flag;
+    public int|string $quality;
+    public string     $extension;
+    /** @var int[] */
+    public array $size = [];
+    /** @var int[] */
+    public array $crop = [];
 
-	/** @var string **/
-	public $identifier;
+    public function __construct(string $identifier)
+    {
+        $this->identifier = $identifier;
+    }
 
-	/** @var string **/
-	public $original;
+    public static function fromIdentifier(string $identifier): ImageNameScript
+    {
+        return self::fromName($identifier);
+    }
 
-	/** @var string */
-	public $namespace;
+    public static function fromName(string $name): ImageNameScript
+    {
+        $pattern = preg_replace('/__file__/', '([^\/]*)\/([^\/]*)\/(.*?)', self::PATTERN);
+        preg_match($pattern, $name, $matches);
 
-	/** @var string */
-	public $prefix;
+        $script = new self($matches[0]);
 
-	/** @var string */
-	public $name;
+        $script->original  = $matches[1] . '/' . $matches[2] . '/' . $matches[3] . '.' . $matches[15];
+        $script->namespace = $matches[1];
+        $script->prefix    = $matches[2];
+        $script->name      = $matches[3];
+        $script->size      = [(int) $matches[5], (int) $matches[6]];
+        $script->flag      = $matches[12];
+        $script->quality   = $matches[14];
+        $script->extension = $matches[15];
 
-	/** @var int[] **/
-	public $size = [];
+        if ($matches[8] && $matches[9] && $matches[10] && $matches[11]) {
+            $script->crop = [(int) $matches[8], (int) $matches[9], (int) $matches[10], (int) $matches[11]];
+        }
 
-	/** @var string */
-	public $flag;
+        return $script;
+    }
 
-	/** @var int */
-	public $quality;
+    /**
+     * @param int[] $size
+     */
+    public function setSize(array $size): void
+    {
+        $this->size = $size;
+    }
 
-	/** @var string */
-	public $extension;
+    /**
+     * @param int[] $crop
+     */
+    public function setCrop(array $crop): void
+    {
+        $this->crop = $crop;
+    }
 
-	/** @var int[] */
-	public $crop = [];
+    public function setFlag(string $flag): void
+    {
+        $this->flag = $flag;
+    }
 
-	public function __construct(string $identifier)
-	{
-		$this->identifier = $identifier;
-	}
+    public function setQuality(int $quality): void
+    {
+        $this->quality = $quality;
+    }
 
+    public function getIdentifier(): string
+    {
+        $identifier = implode('/', [$this->namespace, $this->prefix, $this->name]);
 
-	public static function fromIdentifier(string $identifier): ImageNameScript
-	{
-		return self::fromName($identifier);
-	}
+        if ($this->size) {
+            $identifier .= '.' . $this->size[0] . 'x' . $this->size[1];
 
+            if (count($this->crop)) {
+                $identifier .= sprintf('crop%sx%sx%sx%s', $this->crop[0], $this->crop[1], $this->crop[2], $this->crop[3]);
+            }
 
-	public static function fromName(string $name): ImageNameScript
-	{
-		$pattern = preg_replace('/__file__/', '([^\/]*)\/([^\/]*)\/(.*?)', self::PATTERN);
-		preg_match($pattern, $name, $matches);
+            $identifier .= '.' . $this->flag;
 
-		$script = new self($matches[0]);
+            if ($this->quality) {
+                $identifier .= '.q' . $this->quality;
+            }
+        }
 
-		$script->original  = $matches[1] . '/' . $matches[2] . '/' . $matches[3] . '.' . $matches[15];
-		$script->namespace = $matches[1];
-		$script->prefix    = $matches[2];
-		$script->name      = $matches[3];
-		$script->size      = [(int) $matches[5], (int) $matches[6]];
-		$script->flag      = $matches[12];
-		$script->quality   = $matches[14];
-		$script->extension = $matches[15];
+        return $identifier . '.' . $this->extension;
+    }
 
-		if ($matches[8] && $matches[9] && $matches[10] && $matches[11]) {
-			$script->crop  = [(int) $matches[8], (int) $matches[9], (int) $matches[10], (int) $matches[11]];
-		}
+    public function hasCrop(): bool
+    {
+        return count($this->crop) > 0;
+    }
 
-		return $script;
-	}
+    public function toQuery(): string
+    {
+        if ($this->size && $this->size[0] && $this->size[1]) {
+            $params_dir = $this->size[0] . 'x' . $this->size[1];
 
+            if (count($this->crop)) {
+                $params_dir .= sprintf('crop%sx%sx%sx%s', $this->crop[0], $this->crop[1], $this->crop[2], $this->crop[3]);
+            }
 
-	/**
-	 * @param int[] $size
-	 */
-	public function setSize(array $size): void
-	{
-		$this->size = $size;
-	}
+            $params_dir .= '.' . $this->flag;
 
+            if ($this->quality) {
+                $params_dir .= '.q' . $this->quality;
+            }
 
-	/**
-	 * @param int[] $crop
-	 */
-	public function setCrop(array $crop): void
-	{
-		$this->crop = $crop;
-	}
+            return implode('/', [
+                $this->namespace,
+                $this->prefix,
+                $params_dir,
+                sprintf('%s.%s?_image_storage', $this->name, $this->extension),
+            ]);
+        }
 
-
-	public function setFlag(string $flag): void
-	{
-		$this->flag = $flag;
-	}
-
-
-	public function setQuality(int $quality): void
-	{
-		$this->quality = $quality;
-	}
-
-
-	public function getIdentifier(): string
-	{
-		$identifier = implode('/', [$this->namespace, $this->prefix, $this->name]);
-
-		if ($this->size) {
-			$identifier .= '.' . $this->size[0] . 'x' . $this->size[1];
-
-			if (count($this->crop)) {
-				$identifier .= sprintf('crop%sx%sx%sx%s', $this->crop[0], $this->crop[1], $this->crop[2], $this->crop[3]);
-			}
-
-			$identifier .= '.' . $this->flag;
-
-			if ($this->quality) {
-				$identifier .= '.q' . $this->quality;
-			}
-		}
-
-		return $identifier . '.' . $this->extension;
-	}
-
-
-	public function hasCrop(): bool
-	{
-		return count($this->crop) > 0;
-	}
-
-
-	public function toQuery(): string
-	{
-		if ($this->size && $this->size[0] && $this->size[1]) {
-			$params_dir = $this->size[0] . 'x' . $this->size[1];
-
-			if (count($this->crop)) {
-				$params_dir .= sprintf('crop%sx%sx%sx%s', $this->crop[0], $this->crop[1], $this->crop[2], $this->crop[3]);
-			}
-
-			$params_dir .= '.' . $this->flag;
-
-			if ($this->quality) {
-				$params_dir .= '.q' . $this->quality;
-			}
-
-			return implode('/', [
-				$this->namespace,
-				$this->prefix,
-				$params_dir,
-				sprintf('%s.%s?_image_storage', $this->name, $this->extension),
-			]);
-		}
-
-		return $this->original;
-	}
-
+        return $this->original;
+    }
 }
