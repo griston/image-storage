@@ -299,7 +299,7 @@ class ImageStorage
 
             try {
                 $_image->sharpen()->save($newPathCacheBase, $quality);
-				$_image->paletteToTrueColor();
+                $_image->paletteToTrueColor();
                 imagewebp($_image->getImageResource(), $newPathCache, $quality);
                 unlink($newPathCacheBase);
             } catch (Error $e) {
