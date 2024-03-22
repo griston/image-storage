@@ -40,8 +40,7 @@
 		"nette/application": "^3.1",
 		"nette/utils": "^4.0",
 		"nette/di": "^3.1",
-		"nette/http": "^3.1",
-		"latte/latte": "^2.10 <2.11"
+		"nette/http": "^3.1"
 	},
 	"require-dev": {
 		"ninjify/qa": "^0.12",
