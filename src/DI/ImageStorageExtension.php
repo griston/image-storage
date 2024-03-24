@@ -40,13 +40,13 @@ class ImageStorageExtension extends CompilerExtension
             ->setArguments($config);
     }
 
-    public function beforeCompile(): void
-    {
-        $builder = $this->getContainerBuilder();
+	public function beforeCompile(): void
+	{
+		$builder = $this->getContainerBuilder();
 
-        $latteFactory = $builder->getDefinition('latte.latteFactory');
-        assert($latteFactory instanceof Nette\DI\Definitions\FactoryDefinition);
-        $latteFactory->getResultDefinition()
-            ->addSetup('SkadminUtils\ImageStorage\Macros\Macros::install(?->getCompiler())', ['@self']);
-    }
+		$latteFactory = $builder->getDefinition('latte.latteFactory');
+		assert($latteFactory instanceof FactoryDefinition);
+
+		$latteFactory->getResultDefinition()->addSetup('addExtension', [new LatteExtension()]);
+	}
 }
