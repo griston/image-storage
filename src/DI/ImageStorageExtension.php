@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SkadminUtils\ImageStorage\DI;
 
-use Nette;
 use Nette\DI\CompilerExtension;
+use Nette\DI\Definitions\FactoryDefinition;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
 use SkadminUtils\ImageStorage\ImageStorage;
+use SkadminUtils\ImageStorage\Latte\LatteExtension;
+use stdClass;
 
 use function assert;
 
