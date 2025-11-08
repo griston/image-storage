@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Contributte\ImageStorage;
+namespace SkadminUtils\ImageStorage;
 
 use Nette\Application\UI\Template;
 
