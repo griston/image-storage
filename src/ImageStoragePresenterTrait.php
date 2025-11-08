@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SkadminUtils\ImageStorage;
+namespace Contributte\ImageStorage;
 
 use Nette\Application\UI\Template;
 
@@ -10,22 +10,23 @@ use Nette\Application\UI\Template;
 
 trait ImageStoragePresenterTrait
 {
-    /** @var ImageStorage */
-    public ImageStorage $imageStorage;
 
-    public function injectImageStorage(ImageStorage $imageStorage): void
-    {
-        $this->imageStorage = $imageStorage;
-    }
+	public ImageStorage $imageStorage;
 
-    protected function createTemplate(?string $class = null): Template
-    {
-        $template = parent::createTemplate();
+	public function injectImageStorage(ImageStorage $imageStorage): void
+	{
+		$this->imageStorage = $imageStorage;
+	}
 
-        $template->imageStorage = $this->imageStorage;
+	public function createTemplate(?string $class = null): Template
+	{
+		$template = parent::createTemplate();
 
-        return $template;
-    }
+		$template->imageStorage = $this->imageStorage;
+
+		return $template;
+	}
+
 }
 
 // phpcs:enable
