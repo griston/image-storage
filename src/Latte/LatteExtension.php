@@ -19,6 +19,10 @@ class LatteExtension extends Extension
 		return [
 			'img' => [$this, 'tagImg'],
 			'imgAbs' => [$this, 'tagImgAbs'],
+			'imgSrc' => [$this, 'tagImgSrc'],
+			'imgSrcAbs' => [$this, 'tagImgSrcAbs'],
+			'imgsrc' => [$this, 'tagImgSrc'],
+			'imgsrcAbs' => [$this, 'tagImgSrcAbs'],
 			'n:img' => [$this, 'attrImg'],
 			'n:imgAbs' => [$this, 'attrImgAbs'],
 			'imgLink' => [$this, 'linkImg'],
@@ -32,7 +36,7 @@ class LatteExtension extends Extension
 		$args = $tag->parser->parseArguments();
 
 		return new AuxiliaryNode(
-			fn (PrintContext $context) => $context->format('$_img = $imageStorage->fromIdentifier(%node); echo "<img src=\"" . $basePath . "/" . $_img->createLink() . "\">";', $args)
+			fn (PrintContext $context) => $context->format('echo "<img" . $imageStorage->createImgAttributes(%node, $basePath) . ">";', $args)
 		);
 	}
 
@@ -41,7 +45,25 @@ class LatteExtension extends Extension
 		$args = $tag->parser->parseArguments();
 
 		return new AuxiliaryNode(
-			fn (PrintContext $context) => $context->format('$_img = $imageStorage->fromIdentifier(%node); echo "<img src=\"" . $baseUrl . "/" . $_img->createLink() . "\">";', $args)
+			fn (PrintContext $context) => $context->format('echo "<img" . $imageStorage->createImgAttributes(%node, $baseUrl) . ">";', $args)
+		);
+	}
+
+	public function tagImgSrc(Tag $tag): Node
+	{
+		$args = $tag->parser->parseArguments();
+
+		return new AuxiliaryNode(
+			fn (PrintContext $context) => $context->format('echo $imageStorage->createImgAttributes(%node, $basePath);', $args)
+		);
+	}
+
+	public function tagImgSrcAbs(Tag $tag): Node
+	{
+		$args = $tag->parser->parseArguments();
+
+		return new AuxiliaryNode(
+			fn (PrintContext $context) => $context->format('echo $imageStorage->createImgAttributes(%node, $baseUrl);', $args)
 		);
 	}
 
@@ -50,7 +72,7 @@ class LatteExtension extends Extension
 		$args = $tag->parser->parseArguments();
 
 		return new AuxiliaryNode(
-			fn (PrintContext $context) => $context->format('$_img = $imageStorage->fromIdentifier(%node); echo \' src="\' . $basePath . "/" . $_img->createLink() . \'"\';', $args)
+			fn (PrintContext $context) => $context->format('echo $imageStorage->createImgAttributes(%node, $basePath);', $args)
 		);
 	}
 
@@ -59,7 +81,7 @@ class LatteExtension extends Extension
 		$args = $tag->parser->parseArguments();
 
 		return new AuxiliaryNode(
-			fn (PrintContext $context) => $context->format('$_img = $imageStorage->fromIdentifier(%node); echo \' src="\' . $baseUrl . "/" . $_img->createLink() . \'"\';', $args)
+			fn (PrintContext $context) => $context->format('echo $imageStorage->createImgAttributes(%node, $baseUrl);', $args)
 		);
 	}
 
