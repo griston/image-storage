@@ -16,6 +16,7 @@ use SkadminUtils\ImageStorage\Exception\ImageResizeException;
 use SkadminUtils\ImageStorage\Exception\ImageStorageException;
 use Throwable;
 
+use function array_reverse;
 use function base64_decode;
 use function call_user_func_array;
 use function count;
@@ -31,14 +32,17 @@ use function is_object;
 use function is_readable;
 use function is_writable;
 use function log;
+use function max;
 use function mkdir;
 use function preg_match;
 use function preg_replace;
+use function round;
 use function rmdir;
 use function scandir;
 use function sprintf;
 use function strpos;
 use function substr;
+use function trim;
 use function unlink;
 
 use const LOCK_EX;
@@ -216,20 +220,23 @@ class ImageStorage
             return new Image($this->friendly_url, $this->data_dir, $this->data_path, $identifierOrig);
         }
 
+        $args[1] = $this->getFirstSizeVariant($args[1]);
+
         preg_match('/(\d+)?x(\d+)?(crop(\d+)x(\d+)x(\d+)x(\d+))?/', $args[1], $matches);
         $size = [(int) $matches[1], (int) $matches[2]];
         $crop = [];
 
-        if (! $size[0] || ! $size[1]) {
-            throw new ImageResizeException('Error resizing image. You have to provide both width and height.');
+        if (! $size[0] && ! $size[1]) {
+            throw new ImageResizeException('Error resizing image. You have to provide width, height, or both.');
         }
 
         if (count($matches) === 8) {
             $crop = [(int) $matches[4], (int) $matches[5], (int) $matches[6], (int) $matches[7]];
         }
 
-        $flag    = $args[2] ?? $this->default_transform;
-        $quality = $args[3] ?? $this->quality;
+        $flag          = $args[2] ?? $this->default_transform;
+        $quality       = $args[3] ?? $this->quality;
+        $convertToWebp = (bool) ($args[4] ?? true);
 
         if (! $identifierOrig) {
             $isNoImage       = false;
@@ -243,6 +250,20 @@ class ImageStorage
                 $isNoImage       = true;
                 [$script, $file] = $this->getNoImage(false);
             }
+        }
+
+        if (! $size[0] || ! $size[1]) {
+            if (! file_exists($file)) {
+                return new Image(false, '#', '#', 'Can not find image');
+            }
+
+            try {
+                $_image = NetteImage::fromFile($file);
+            } catch (UnknownImageFileException $e) {
+                return new Image(false, '#', '#', 'Unknown type of file');
+            }
+
+            $size = $this->completeSizeByRatio($size, $_image);
         }
 
         $script->setSize($size);
@@ -260,7 +281,10 @@ class ImageStorage
         $newPathCacheBase = implode('/', [$this->data_path_cache, $identifier]);
         $newPathCache     = implode('/', [$this->data_path_cache, $identifierWebp]);
 
-        if (! file_exists($newPathCacheBase) && ! file_exists($newPathCache)) {
+        if (
+            ($convertToWebp && ! file_exists($newPathCache))
+            || (! $convertToWebp && ! file_exists($newPathCacheBase))
+        ) {
             if (! file_exists($file)) {
                 return new Image(false, '#', '#', 'Can not find image');
             }
@@ -299,9 +323,12 @@ class ImageStorage
 
             try {
                 $_image->sharpen()->save($newPathCacheBase, $quality);
-                $_image->paletteToTrueColor();
-                imagewebp($_image->getImageResource(), $newPathCache, $quality);
-                unlink($newPathCacheBase);
+
+                if ($convertToWebp) {
+                    $_image->paletteToTrueColor();
+                    imagewebp($_image->getImageResource(), $newPathCache, $quality);
+                    unlink($newPathCacheBase);
+                }
             } catch (Error $e) {
                 // notsupport webp
             } catch (Throwable $e) {
@@ -309,11 +336,181 @@ class ImageStorage
             }
         }
 
-        if (file_exists($newPathCache)) {
+        if ($convertToWebp && file_exists($newPathCache)) {
             return new Image($this->friendly_url, $this->data_dir_cache, $this->data_path_cache, $identifierWebp, ['script' => $script]);
         }
 
         return new Image($this->friendly_url, $this->data_dir_cache, $this->data_path_cache, $identifier, ['script' => $script]);
+    }
+
+    /**
+     * @param mixed $args
+     */
+    public function createImgAttributes($args, string $basePath): string
+    {
+        $_img = $this->fromIdentifier($args);
+        $attributes = ' src="' . $basePath . '/' . $_img->createLink() . '"';
+        $srcset = $this->createSrcset($args, $basePath);
+
+        if ($srcset) {
+            $attributes .= ' srcset="' . $srcset . '"';
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @param mixed $identifier
+     */
+    public function createResponsiveImgAttributes(
+        $identifier,
+        string $widths,
+        int $height,
+        string $basePath,
+        string $flag = 'exact',
+        ?int $quality = null,
+        bool $convertToWebp = true,
+        ?string $sizes = null
+    ): string {
+        $widthVariants = $this->getWidthVariants($widths);
+        $args = [
+            $identifier,
+            $this->createSizeVariantsFromWidths($widthVariants, $height),
+            $flag,
+            $quality,
+            $convertToWebp,
+        ];
+
+        $attributes = $this->createImgAttributes($args, $basePath);
+        $attributes .= ' sizes="' . ($sizes ?: $this->createDefaultResponsiveSizes($widthVariants)) . '"';
+
+        return $attributes;
+    }
+
+    /**
+     * @param mixed $args
+     */
+    public function createSrcset($args, string $basePath): string
+    {
+        if (! is_array($args) || count($args) < 2) {
+            return '';
+        }
+
+        $srcset = [];
+
+        foreach ($this->getSizeVariants($args[1]) as $size) {
+            $variantArgs    = $args;
+            $variantArgs[1] = $size;
+            $_img           = $this->fromIdentifier($variantArgs);
+            $srcset[]       = $basePath . '/' . $_img->createLink() . ' ' . $_img->getScript()->size[0] . 'w';
+        }
+
+        if (count($srcset) < 2) {
+            return '';
+        }
+
+        return implode(', ', $srcset);
+    }
+
+    /**
+     * @return string[]
+     */
+    private function getSizeVariants(string $size): array
+    {
+        $variants = [];
+
+        foreach (explode(',', $size) as $variant) {
+            $variant = trim($variant);
+
+            if ($variant === '') {
+                continue;
+            }
+
+            $variants[] = $variant;
+        }
+
+        return $variants ?: [$size];
+    }
+
+    private function getFirstSizeVariant(string $size): string
+    {
+        return $this->getSizeVariants($size)[0];
+    }
+
+    /**
+     * @return int[]
+     */
+    private function getWidthVariants(string $widths): array
+    {
+        $variants = [];
+
+        foreach (explode(',', $widths) as $width) {
+            $width = (int) trim($width);
+
+            if ($width <= 0) {
+                continue;
+            }
+
+            $variants[] = $width;
+        }
+
+        if (! $variants) {
+            throw new ImageResizeException('Error resizing image. You have to provide at least one width.');
+        }
+
+        return $variants;
+    }
+
+    /**
+     * @param int[] $widths
+     */
+    private function createSizeVariantsFromWidths(array $widths, int $height): string
+    {
+        $variants = [];
+
+        foreach ($widths as $width) {
+            $variants[] = $width . 'x' . $height;
+        }
+
+        return implode(',', $variants);
+    }
+
+    /**
+     * @param int[] $widths
+     */
+    private function createDefaultResponsiveSizes(array $widths): string
+    {
+        $breakpoints = [576, 768, 992, 1200, 1400];
+        $columns     = [1, 2, 3, 3, 3];
+        $sizes       = [];
+
+        foreach ($widths as $index => $width) {
+            if (! isset($breakpoints[$index], $columns[$index])) {
+                continue;
+            }
+
+            $sizes[] = sprintf('(min-width: %spx) %spx', $breakpoints[$index], (int) floor($width / $columns[$index]));
+        }
+
+        return implode(', ', array_reverse($sizes)) . ', 100vw';
+    }
+
+    /**
+     * @param int[] $size
+     *
+     * @return int[]
+     */
+    private function completeSizeByRatio(array $size, NetteImage $image): array
+    {
+        if ($size[0]) {
+            $size[1] = max(1, (int) round($size[0] / $image->getWidth() * $image->getHeight()));
+
+            return $size;
+        }
+
+        $size[0] = max(1, (int) round($size[1] / $image->getHeight() * $image->getWidth()));
+
+        return $size;
     }
 
     /**
